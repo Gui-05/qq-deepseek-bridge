@@ -58,7 +58,9 @@
     "postinstall": "node scripts/patch-snowluma-sdk.mjs",
     "privacy-scan": "node scripts/privacy-scan.mjs",
     "diagnose:acl": "node scripts/diagnose-acl.mjs",
-    "harden-acl": "node scripts/harden-state-acl.mjs"
+    "harden-acl": "node scripts/harden-state-acl.mjs",
+    "pet:patches": "node scripts/reapply-pet-patches.mjs --check",
+    "pet:patches:apply": "node scripts/reapply-pet-patches.mjs --apply"
   },
   "dependencies": {
     "@deepseek-ai/dsh-host-apiproxy": "0.1.1-rc.2",

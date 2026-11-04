@@ -1767,6 +1767,7 @@ button:active:not(:disabled) {
       <button data-view="overview" class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">◫</span>运行总览</button>
       <button data-view="sessions" class="nav-item"><span class="nav-icon" aria-hidden="true">☷</span>会话与审批<span class="nav-count" id="pendingCount">—</span></button>
       <button data-view="persona" class="nav-item"><span class="nav-icon" aria-hidden="true">◉</span>人格与角色</button>
+      <button data-view="memory" class="nav-item"><span class="nav-icon" aria-hidden="true">◍</span>记忆与压缩</button>
       <div class="nav-label">聊天行为</div>
       <button data-view="social-v2" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>二代仿真<span class="nav-note">V2</span></button>
       <button data-view="social-v1" class="nav-item"><span class="nav-icon" aria-hidden="true">◇</span>一代仿真<span class="nav-note">V1</span></button>
@@ -1814,6 +1815,48 @@ button:active:not(:disabled) {
 <section id="section-sessions" data-page="sessions" class="card span-all">
       <h2>会话映射</h2>
       <div id="sessionList">加载中…</div>
+    </section>
+<section id="section-memory" data-page="memory" class="card span-all" hidden>
+      <h2>记忆与压缩</h2>
+      <div id="memStatus" class="meta">加载中…</div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:10px">
+        <div style="flex:1 1 260px">
+          <label for="memApiKey">摘要 API Key</label>
+          <input id="memApiKey" type="password" placeholder="留空 = 不修改" style="width:100%">
+        </div>
+        <div style="flex:1 1 160px">
+          <label for="memModel">模型</label>
+          <input id="memModel" style="width:100%" placeholder="deepseek-chat">
+        </div>
+        <div style="flex:1 1 200px">
+          <label for="memBaseUrl">接口地址</label>
+          <input id="memBaseUrl" style="width:100%" placeholder="https://api.deepseek.com">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:10px">
+        <div style="flex:1 1 120px"><label for="memTrigger">触发比例 %</label><input id="memTrigger" type="number" min="50" max="98" style="width:100%"></div>
+        <div style="flex:1 1 120px"><label for="memTarget">目标比例 %</label><input id="memTarget" type="number" min="10" max="90" style="width:100%"></div>
+        <div style="flex:1 1 140px"><label for="memLimit">上下文上限</label><input id="memLimit" type="number" min="8000" step="1000" style="width:100%"></div>
+        <div style="flex:1 1 110px"><label for="memNightStart">深夜起</label><input id="memNightStart" placeholder="02:00" style="width:100%"></div>
+        <div style="flex:1 1 110px"><label for="memNightEnd">深夜止</label><input id="memNightEnd" placeholder="05:00" style="width:100%"></div>
+      </div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:10px">
+        <div style="flex:1 1 130px"><label for="memQuiet">静默分钟</label><input id="memQuiet" type="number" min="5" max="720" style="width:100%"></div>
+        <div style="flex:1 1 130px"><label for="memPerDay">每日上限</label><input id="memPerDay" type="number" min="0" max="200" style="width:100%"></div>
+        <div style="flex:1 1 130px"><label for="memCarry">接力卡字数</label><input id="memCarry" type="number" min="120" max="2000" style="width:100%"></div>
+        <div style="flex:1 1 190px"><label for="memAliases">主人其他 QQ 号</label><input id="memAliases" placeholder="逗号分隔，可留空" style="width:100%"></div>
+        <div style="flex:0 0 auto;display:flex;align-items:end;gap:6px">
+          <label style="margin:0">影子模式</label><input id="memShadow" type="checkbox" style="width:auto">
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="memSave" class="small">保存（无需重启）</button>
+        <button id="memDry" class="small">试压（不写入）</button>
+        <button id="memRun" class="small">立即压缩</button>
+        <button id="memRefresh" class="small">刷新状态</button>
+        <span class="meta" id="memMsg"></span>
+      </div>
+      <div class="meta">试压/立即压缩都会跳过「深夜 + 静默」这两个时段条件，只受上下文比例和护栏（有未回答提问、正在对话）限制。</div>
     </section>
 <section id="section-pending" data-page="sessions" class="card span-all">
       <h2>挂起审批 / 提问</h2>
@@ -2472,6 +2515,15 @@ button:active:not(:disabled) {
       </div>
       <div class="meta" id="dshEffortNote"></div>
       <div class="meta" id="dshEffortSideEffect"></div>
+    </section>
+<section id="section-services" data-page="operations" class="card span-all" hidden>
+      <h2>服务状态</h2>
+      <div id="svcList">加载中…</div>
+      <div class="row" style="margin-top:10px">
+        <button id="svcRefresh" class="small">刷新状态</button>
+        <span class="meta" id="svcMsg"></span>
+      </div>
+      <div class="meta">「开机自启」写在 state/services.json，开机脚本会按它跳过不需要的服务，重启电脑后生效。桥接自己的重启在「桥接控制」；DSH 的重启会中断会话，不在控制台里做。</div>
     </section>
 <section id="section-security" data-page="access" class="card">
       <h2>安全拦截通知</h2>
@@ -4427,6 +4479,7 @@ const consolePages = {
   overview: ['运行总览', '让每一次连接，都自然发生。', '掌握桥接状态，轻松管理你的 QQ 智能伙伴。'],
   sessions: ['会话与审批', '让每一段对话，都有迹可循。', '查看 QQ 与 DSH 的会话映射，以及等待你回复的审批和提问。'],
   persona: ['人格与角色', '给你的伙伴，一点独特个性。', '选择已有角色，或用自己的语言写下新的性格与表达方式。'],
+  memory: ['记忆与压缩', '让她记得住，也放得下。', '长期记忆库与上下文压缩：决定她记什么、怎么压、什么时候换会话。'],
   'social-v2': ['二代仿真', '自主参与，恰到好处。', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
   'social-v1': ['一代仿真', '为自然对话，设定合适的节奏。', '调整参与概率、活跃周期和分条发送；所有配置项完整保留。'],
   slang: ['黑话词库', '读懂群聊里的，言外之意。', '从候选到确认，让 AI 逐渐熟悉大家的表达习惯。'],
@@ -4462,6 +4515,8 @@ function setConsolePage(page, { updateHash = true, focus = false, target = '' } 
   closeConsoleSearch();
   // 语音库按需加载：进入二代仿真页时才探测（避免每次开控制台都压网关）。
   if (page === 'social-v2' && typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
+  if (page === 'memory' && typeof loadMemoryPanel === 'function') loadMemoryPanel();
+  if (page === 'operations' && typeof loadServicesPanel === 'function') loadServicesPanel();
   if (focus) {
     document.getElementById('mainContent').focus({ preventScroll: true });
     document.getElementById(target || 'mainContent')?.scrollIntoView({ block: 'start', behavior: 'instant' });
@@ -5076,6 +5131,160 @@ setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); 
     if (!stored()) apply(event.matches ? 'dark' : 'light', false);
   });
 })();
+
+// ── 记忆与压缩面板（2026-11-04）──────────────────────────────────────
+// 数据来自 /api/memory/config 与 /api/memory/status。
+// API Key 后端只回掩码，输入框留空表示"不修改"。
+// 用控制台自带的 api()：它会自动带 x-console-token，401 时弹窗要令牌。
+// 裸 fetch 会直接 401「请提供控制台访问令牌」（踩过）。
+
+function memSetMsg(text, isError) {
+  const el = document.getElementById('memMsg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = isError ? 'var(--danger,#d33)' : '';
+}
+
+async function loadMemoryPanel() {
+  try {
+    const [cfg, st] = await Promise.all([
+      api('/api/memory/config'),
+      api('/api/memory/status'),
+    ]);
+    const c = cfg.config || {};
+    document.getElementById('memApiKey').value = '';
+    document.getElementById('memApiKey').placeholder = c.apiKeySet ? ('已设置 ' + c.apiKey + '（留空不改）') : '尚未设置';
+    document.getElementById('memModel').value = c.model || '';
+    document.getElementById('memBaseUrl').value = c.baseUrl || '';
+    document.getElementById('memTrigger').value = Math.round((c.triggerRatio ?? 0.9) * 100);
+    document.getElementById('memTarget').value = Math.round((c.compactTarget ?? 0.5) * 100);
+    document.getElementById('memLimit').value = c.contextLimit ?? 128000;
+    document.getElementById('memNightStart').value = c.nightStart || '02:00';
+    document.getElementById('memNightEnd').value = c.nightEnd || '05:00';
+    document.getElementById('memQuiet').value = c.quietMinutes ?? 60;
+    document.getElementById('memPerDay').value = c.maxPerDay ?? 10;
+    document.getElementById('memCarry').value = c.carryoverChars ?? 320;
+    document.getElementById('memShadow').checked = c.shadowMode === true;
+    document.getElementById('memAliases').value = (cfg.ownerQQAliases || []).join(', ');
+
+    const kb = (st.bytes / 1024).toFixed(1);
+    const last = st.lastCompactAt ? new Date(st.lastCompactAt).toLocaleString('zh-CN', { hour12: false }) : '从未';
+    const perKey = Object.entries(st.byKey || {}).map(([k, n]) => k + ' ' + n + ' 条').join(' · ') || '—';
+    document.getElementById('memStatus').innerHTML =
+      '记忆库：<b>' + st.total + '</b> 条（钉住 <b>' + st.pinned + '</b>）· 占用 <b>' + kb + ' KB</b><br>'
+      + '今日模型调用：<b>' + st.quotaUsedToday + '/' + (st.maxPerDay || '不限') + '</b> · 上次压缩：<b>' + last + '</b><br>'
+      + '分布：' + perKey + '<br><span style="opacity:.7">' + (st.dir || '') + '</span>';
+  } catch (error) {
+    document.getElementById('memStatus').textContent = '加载失败：' + (error?.message ?? error);
+  }
+}
+
+async function saveMemoryConfig() {
+  memSetMsg('保存中…');
+  try {
+    const body = {
+      config: {
+        apiKey: document.getElementById('memApiKey').value.trim(),
+        model: document.getElementById('memModel').value.trim(),
+        baseUrl: document.getElementById('memBaseUrl').value.trim(),
+        triggerRatio: Number(document.getElementById('memTrigger').value) / 100,
+        compactTarget: Number(document.getElementById('memTarget').value) / 100,
+        contextLimit: Number(document.getElementById('memLimit').value),
+        nightStart: document.getElementById('memNightStart').value.trim(),
+        nightEnd: document.getElementById('memNightEnd').value.trim(),
+        quietMinutes: Number(document.getElementById('memQuiet').value),
+        maxPerDay: Number(document.getElementById('memPerDay').value),
+        carryoverChars: Number(document.getElementById('memCarry').value),
+        shadowMode: document.getElementById('memShadow').checked,
+      },
+      ownerQQAliases: document.getElementById('memAliases').value.split(/[,，\s]+/).filter(Boolean),
+    };
+    const out = await api('/api/memory/config', 'POST', body);
+    memSetMsg(out.ok ? '已保存（无需重启）' : ('失败：' + out.error), !out.ok);
+    if (out.ok) loadMemoryPanel();
+  } catch (error) {
+    memSetMsg('保存失败：' + (error?.message ?? error), true);
+  }
+}
+
+async function runMemoryCompact(dryRun) {
+  memSetMsg(dryRun ? '试压中…（不写入记忆库）' : '压缩中…（可能需要几十秒）');
+  try {
+    const out = await api('/api/socialV2/memory-compact-now', 'POST', { force: true, dryRun });
+    memSetMsg(out.ok ? (dryRun ? '试压完成，结果见桥接日志' : '压缩完成，已重建会话') : ('失败：' + out.error), !out.ok);
+    if (out.ok && !dryRun) loadMemoryPanel();
+  } catch (error) {
+    memSetMsg('执行失败：' + (error?.message ?? error), true);
+  }
+}
+
+document.getElementById('memSave')?.addEventListener('click', saveMemoryConfig);
+document.getElementById('memDry')?.addEventListener('click', () => runMemoryCompact(true));
+document.getElementById('memRun')?.addEventListener('click', () => runMemoryCompact(false));
+document.getElementById('memRefresh')?.addEventListener('click', () => { memSetMsg(''); loadMemoryPanel(); });
+
+
+// ── 服务状态面板（2026-11-04）────────────────────────────────────────
+async function loadServicesPanel() {
+  const box = document.getElementById('svcList');
+  if (!box) return;
+  try {
+    const [data, auto] = await Promise.all([
+      api('/api/services/status'),
+      api('/api/services/autostart'),
+    ]);
+    if (!data.ok) throw new Error(data.error || '读取失败');
+    const autoMap = (auto && auto.autostart) || {};
+    box.innerHTML = data.services.map((s) => {
+      const dot = s.running ? '🟢' : '⚪';
+      const acts = s.id === 'bridge'
+        ? '<span class="meta">（用「桥接控制」重启）</span>'
+        : (s.running
+          ? (s.id === 'gsv' ? '<button class="small" data-svc="' + s.id + '" data-act="stop">停止</button>' : '<span class="meta">运行中</span>')
+          : '<button class="small" data-svc="' + s.id + '" data-act="start">启动</button>');
+      const auto = autoMap[s.id];
+      const autoBox = auto === undefined ? '<span class="meta">—</span>'
+        : '<label style="display:flex;align-items:center;gap:4px;margin:0;font-size:12px">'
+          + '<input type="checkbox" data-auto="' + s.id + '" ' + (auto ? 'checked' : '') + ' style="width:auto">开机自启</label>';
+      return '<div class="row" style="align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line,#eee)">'
+        + '<span style="flex:0 0 22px">' + dot + '</span>'
+        + '<b style="flex:0 0 120px">' + s.label + '</b>'
+        + '<span class="meta" style="flex:1">' + (s.hint || '') + ' · 端口 ' + (s.ports.length ? s.ports.join(',') : '无') + (s.detail ? ' · ' + s.detail : '') + '</span>'
+        + '<span style="flex:0 0 auto">' + autoBox + '</span>'
+        + '<span style="flex:0 0 auto">' + acts + '</span>'
+        + '</div>';
+    }).join('');
+    box.querySelectorAll('[data-svc]').forEach((b) => b.addEventListener('click', () => svcAction(b.dataset.svc, b.dataset.act)));
+    box.querySelectorAll('[data-auto]').forEach((cb) => cb.addEventListener('change', () => svcAuto(cb.dataset.auto, cb.checked)));
+  } catch (error) {
+    box.textContent = '加载失败：' + (error?.message ?? error);
+  }
+}
+
+async function svcAuto(id, enabled) {
+  const msg = document.getElementById('svcMsg');
+  try {
+    const out = await api('/api/services/autostart', 'POST', { id, enabled });
+    if (msg) msg.textContent = out.ok ? ('开机自启 ' + id + ' = ' + (enabled ? '开' : '关')) : ('失败：' + out.error);
+  } catch (error) {
+    if (msg) msg.textContent = '保存失败：' + (error?.message ?? error);
+  }
+}
+
+async function svcAction(id, action) {
+  const msg = document.getElementById('svcMsg');
+  if (msg) msg.textContent = (action === 'start' ? '启动中…' : '停止中…');
+  try {
+    const data = await api('/api/services/action', 'POST', { id, action });
+    if (msg) msg.textContent = data.ok ? (data.message || '已执行') : ('失败：' + data.error);
+    setTimeout(loadServicesPanel, 2500);
+  } catch (error) {
+    if (msg) msg.textContent = '执行失败：' + (error?.message ?? error);
+  }
+}
+
+document.getElementById('svcRefresh')?.addEventListener('click', loadServicesPanel);
+
 </script>
 </body>
 </html>

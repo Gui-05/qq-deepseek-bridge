@@ -43,7 +43,7 @@ import { discoverDshSessionCookie, NodeApiClient, unwrap } from '../src/dsh-clie
 
 const ROOT = process.cwd();
 const DSH_MODULES = dshModulesDir();
-const DSH_HOME = path.join(os.homedir(), '.dsh');
+const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
 const BASE = process.env.DSH_BASE_URL || 'http://127.0.0.1:3080';
 
 let pass = 0, fail = 0;

@@ -225,6 +225,45 @@ const SAFE_EXACT = new Set([
   'todo_write',
 ])
 
+// ── 电脑操作（dsh-codex-style-computer-use）─────────────────────────────
+//
+// 设计：观察永远放行，操作必须等主人开时间窗。
+//
+// 为什么不用插件自带的审批卡：那是 DSH 网页端的 UI 组件，QQ 会话里弹不出来，
+// standard 模式会让每次点击永久挂起（等于她一动就死）。所以插件 automationMode
+// 设 unrestricted，真正的闸门放在这里：
+//
+//   主人私聊发「.操作权限 30」→ bridge 写 state/computer-grant.json（30 分钟）
+//   守卫在执行期检查该文件 → 过期/不存在就拒绝所有 ACTUATION 工具
+//
+// 工具名取自插件 lib/policy.js 的 OBSERVATION_TOOLS / ACTUATION_TOOLS（不是猜的）。
+// 插件升级改名时，失败模式是「守卫突然全放行」，所以判定顺序是：
+// 先认 OBSERVATION / CONTROL 白名单，其余 computer_ 一律按操作处理。
+const COMPUTER_OBSERVATION_TOOLS = new Set([
+  'computer_shot', 'computer_state', 'computer_marks', 'computer_uia', 'computer_wait', 'computer_ocr',
+])
+
+const COMPUTER_CONTROL_TOOLS = new Set([
+  'computer_use_activate',
+  'computer_ctrl',
+])
+
+const GRANT_FILE = process.env.QQ_COMPUTER_GRANT_FILE
+  || fileURLToPath(new URL('../../state/computer-grant.json', import.meta.url))
+
+/** 读主人开的时间窗；null = 未开放。 */
+function computerGrantState() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(GRANT_FILE, 'utf8').replace(/^\uFEFF/, ''))
+    const until = Number(raw?.until ?? 0)
+    if (!Number.isFinite(until) || until <= Date.now()) return null
+    return { until, minutes: Number(raw?.minutes ?? 0) }
+  } catch {
+    return null
+  }
+}
+
+
 // ── 诊断落盘：restrict 失败时到底为什么 ────────────────────────────────────
 //
 // 为什么必须落盘（2026-10-18 实测）：重启之后新建的 QQ 会话 schema 里，
@@ -261,7 +300,11 @@ function writeDiagnostics(lines) {
   } catch {}
 }
 
-export function apply(ctx) {
+export function apply(ctx, config = {}) {
+  // 预设级开关：群聊预设会把 denyComputer 设成 true，连观察类电脑工具都不给。
+  const denyComputer = config?.denyComputer === true
+  // 是否允许桌宠工具（pet_say/pet_act/pet_walk/pet_speak…）。只给私聊预设开。
+  const allowPet = config?.allowPet === true
   // 1) 把已知危险全局工具从 schema 隐藏（restrict 只影响继承的全局层，
   //    不会误删 preset 自己注册的 scoped 工具）。
   // 逐个 restrict：当前 DSH 版本不存在的工具名会单独抛错并跳过，
@@ -322,6 +365,33 @@ export function apply(ctx) {
     const name = exec?.name
     if (typeof name !== 'string' || name.length === 0) return '工具名无效，已拒绝'
     if (SAFE_EXACT.has(name)) return
+
+    // ── 电脑操作：观察放行，操作要主人开时间窗 ──────────────────────
+    if (name.startsWith('computer_')) {
+      // 群聊预设一律拒绝：这个会话里不该有任何电脑能力（连截图都不行）。
+      if (denyComputer) {
+        return '当前会话（群聊）没有任何电脑操作/观察权限。要看屏幕只能让他在私聊里说。'
+      }
+      // computer_ask 要在 DSH 聊天卡片上等人点选，QQ 里没人点 → 永远挂起，直接拒绝。
+      if (name === 'computer_ask') {
+        return 'computer_ask 在 QQ 会话里不可用（它要等网页端卡片，会永久挂起）；要用文字问就用普通消息问他。'
+      }
+      // 观察类和控制类不碰桌面内容，随时可用
+      if (COMPUTER_OBSERVATION_TOOLS.has(name) || COMPUTER_CONTROL_TOOLS.has(name)) return
+      // 其余（点击/键入/滚动/拖拽/批量/window）一律按需要授权处理
+      const grant = computerGrantState()
+      if (grant) return
+      return `电脑操作权限未开：现在只能看屏幕（截图/控件树），不能点击或输入。`
+        + ` 让主人说「.操作权限 30」开 30 分钟，到点自动收回。`
+    }
+
+    // 桌宠工具：只有私聊预设（allowPet: true）能用。
+    // 群聊预设不设这个开关，所以群里既不能让她说话也不能让她动鼠标。
+    if (name.startsWith('pet_')) {
+      if (allowPet) return
+      return '桌宠工具只在主人的私聊里可用（群聊会话不暴露桌面宠物能力）。'
+    }
+
     if (SAFE_PREFIXES.some((prefix) => name.startsWith(prefix))) return
     return `工具 "${name}" 不在 QQ 桥接白名单内，已拒绝（仅允许 QQ MCP 工具与无害模型侧工具）`
   })

@@ -66,3 +66,23 @@ docs/guides/VOICE.md
 # 语音库（用户个人音频素材，config.json 的 socialV2.voice.dir 指向此处）
 audio/
 
+
+# ── 公开仓库脱敏（2026-11-04）────────────────────────────────
+# 长期记忆库：原文是真实聊天，绝不能进仓库
+memory/
+# 会话归档（从 DSH 恢复的对话原文）
+state/archive/
+# 语音训练素材（个人声音）
+voice-dataset/
+# 备份目录（可能含 config 老版本）
+backups/
+
+# 私人人设卡：只发 roles/模板-群友版.md 那份脱敏模板
+roles/小鲸鱼.md
+roles/小鲸鱼-v2-draft.md
+
+# 维护者专用的脱敏工具（自身含真实号码用作匹配模式）
+scripts/scan-personal.mjs
+scripts/scan-tracked.mjs
+scripts/show-hits.mjs
+scripts/sanitize.mjs

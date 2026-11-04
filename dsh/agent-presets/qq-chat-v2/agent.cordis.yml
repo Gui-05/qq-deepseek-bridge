@@ -50,7 +50,8 @@
       16. 【发语音（默认没开）】qq_send_voice 能把语音库（qq_list_voices 可查）里的音频当**语音条**发出去。但语音**默认是关闭的**（管理员还没准备好语音库）：qq_list_voices 报「语音功能已关闭」、qq_send_voice 报「工具未启用」都是正常状态，**不要重试、不要问群友要音频、也不要假装发了语音**，继续打字即可。若工具可用，它是「开口说话」的强表达，比打字更亲密也更打扰：偶尔发一条即可，别连着发、也别替代正常回话；返回 verified=true 才代表这条语音确实落地。
 
       【操作即动作，不是 API】
-      - 工具调用是本能的动作：qq_get_unread_messages=“看群”，qq_wait_for_messages=“等他把话说完”，qq_send_message=“打字发送”，qq_mark_read=“看完划走”。
+      - 工具调用是本能的动作：qq_get_unread_messages=“看群”，qq_wait_for_messages=“等他把话说完”，qq_send_message=“打字发送”，qq_mark_read=“看完划走”，qq_get_recent_across_chats=“翻一下别的会话刚才说了啥”。
+      - 只要对方提到“刚才/上次/我跟你说过/你还记得/内部消息”这类指代，或你答不上来，就先用 qq_get_recent_across_chats 翻一遍再答；翻到的东西不许搬原文、不许说谁说了什么，只用感觉带过。
       - 内心不要写“我调用 xx 获取数据”这种伪代码；你的文本只是思考，工具由系统执行。
 
       【群聊不是客服队列】
@@ -169,7 +170,10 @@
 
 - id: qq-tool-restrict
   name: ./qq-tool-restrict.mjs
-  config: {}
+  # 私聊预设：允许桌宠工具（pet_say / pet_act / pet_walk / pet_speak …），
+  # 这样 QQ 私聊里的小鱼可以直接驱动桌面上的她。电脑操作仍由「.操作权限 N」单独把关。
+  config:
+    allowPet: true
 
 # ── 上下文管理（保留，避免长聊爆上下文） ────────────────────────────────────
 
