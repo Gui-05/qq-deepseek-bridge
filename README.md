@@ -51,6 +51,52 @@ QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──�
                                                 └── agent 回复/提问/审批 ┘
 ```
 
+## 本仓库相对上游的改动
+
+> 本仓库 fork 自 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)，
+> 在原有「QQ ↔ DSH 桥接」之上补了四块：**长期记忆**、**上下文压缩**、**服务控制台**、**桌面桌宠接入**。
+
+### 长期记忆库（`src/memory-store.js`）
+
+- **原文落盘**：`memory/<会话>/<年月>.jsonl`，只增不删；`index.json` 只存元数据（标题/时间/重要性/隐私）。
+- **索引进 prompt**：每轮只带十几行标题，细节用 `qq_memory_recall` 按需查——上下文只花几百字，却能覆盖上千条记忆。
+- **重要性**：启发式打分（涉及主人 / 情绪 / 时间 / 实体）与模型打分**取较高者**。
+- **钉住（pinned）**：她说"我记着"、被要求"记住"、出现约定词（说好了/答应/约好）→ 重要性拉到 0.9+，
+  **永不压缩**、检索永远排最前。
+- **隐私分级**：`public / group / friend / owner / secret`，按来源会话自动推断；跨会话查询按级别过滤
+  （主人私聊里的 `owner` 级记忆不会出现在群聊检索结果里）。
+- **出站隐私闸门**：她要把别人私下说的事转述给第三方时，发送前用 12 字片段比对拦下并提醒；
+  她可调 `qq_memory_disclose` 显式放行（一次性票据 + 审计日志）。
+
+> 设计取舍见文件头注释与 `docs/` 下的说明；两个测试脚本 `scripts/test-memory-*.mjs` 可离线跑。
+
+### 上下文压缩（`src/memory-compress.js` + 桥接内的 `compactTick`）
+
+- **触发**：上下文用量 ≥ 阈值（默认 90%）**且**在深夜窗口（默认 02:00–05:00）**且**已静默一段时间。
+- **取材**：从**全量归档**（`state/archive/`，每条消息实时落盘）取，而不是只看 `recentMessages` 那 100 条。
+- **压缩**：按话题分块（≤12 条 / ≤1200 字）→ 调模型压成「标题 + 摘要 + 标签 + 重要性」→ 写进记忆库。
+- **接力卡**：压完重建会话，首次唤醒注入一张紧凑接力卡（按日期分组摘要 + 最近原话，一次性）。
+- **质量闸**：任一块降级成抽取式（模型失败）就**不动会话**，避免把半句话塞进接力卡。
+
+### 服务控制台（`public/console.html` + `/api/services/*`）
+
+- 「记忆与压缩」页：API Key（只回掩码）、模型、触发/目标比例、深夜窗口、静默分钟、每日上限、
+  主人其他 QQ 号；保存**热生效**，不用重启。
+- 「服务状态」面板：SnowLuma / 语音合成 / 桥接 / 桌宠的状态、启停按钮、**开机自启开关**。
+- 开机自启写在 `state/services.json`，开机脚本（若你用自己的启动链）可按它跳过服务。
+
+### 桌面桌宠接入（可选）
+
+- 打了一套本地补丁把 [dsh-coopanion-pet](https://github.com/Derpyu520/dsh-coopanion-pet) 接到 QQ 桥接：
+  同一套人格，既能 QQ 发消息，也能在桌面上说话/走动。
+- 补丁台账：`docs/desktop-pet-patches.md`；复检脚本：`scripts/reapply-pet-patches.mjs --check`。
+- 需要装有 Electron + 该插件；不装也不影响 QQ 侧。
+
+### 角色卡
+
+- `roles/模板-群友版.md`：可公开分发的脱敏模板（保留「去 AI 味」规则，去掉针对特定主人的语气）。
+- 你自己的角色卡放 `roles/` 下另存即可，`.gitignore` 已忽略个人卡。
+
 ## 项目展示
 
 📽️ [AI 仿真群友 - 项目介绍视频](https://github.com/Derpyu520/qq-bridge/releases/download/v0.1.5/project-intro.mp4)（约 11 MB）
@@ -366,3 +412,17 @@ SnowLuma 同一个账号的 **HTTP token（默认 3000 端口）与 WebSocket to
 ## 合规提醒
 
 SnowLuma 是独立第三方项目，与腾讯/QQ 无隶属关系，仅供学习与技术研究；使用前请阅读其 EULA 与《QQ 用户协议》。
+
+## 致谢
+
+本项目的想法与实现建立在这些开源工作之上：
+
+- **[Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)** —— 本仓库的上游：QQ ↔ DSH 桥接、二代仿真模式、
+  工具面与安全边界的原始设计都在那里。
+- **[DeepSeek Harness](https://github.com/deepseek-ai)** —— 运行 agent 的宿主（session / 工具 / 插件 / 控制台）。
+- **[SnowLuma](https://github.com/Derpyu520/snowluma)** —— 独立的 OneBot 网关（QQ 侧收发），与腾讯无隶属关系。
+- **[GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)** —— 语音合成；本项目通过一个薄适配层把它接到
+  桥接原有的 TTS 路由上（`plugins/gsv-tts-bridge` 若在你的环境里存在）。
+- **[dsh-coopanion-pet](https://github.com/Derpyu520/dsh-coopanion-pet)** —— 桌面侧的她（Electron 独立窗口）。
+
+若上述项目有各自的许可与使用限制，以它们为准。
