@@ -53,8 +53,47 @@ QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──�
 
 ## 本仓库相对上游的改动
 
-> 本仓库 fork 自 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)，
+> 本仓库**基于** [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) **修改**（MIT，见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)；非 GitHub fork，但完整继承了上游历史，不代表上游背书），
 > 在原有「QQ ↔ DSH 桥接」之上补了四块：**长期记忆**、**上下文压缩**、**服务控制台**、**桌面桌宠接入**。
+
+### 一眼看清：哪些是我们的
+
+**新增文件（13 个）** —— 上游完全没有，全是新功能：
+
+| 文件 | 作用 |
+|---|---|
+| `src/memory-store.js` | 长期记忆库：原文落盘、索引、检索、隐私分级、出站闸门 |
+| `src/memory-compress.js` | 上下文压缩：调模型把对话压成"标题+摘要+标签+重要性" |
+| `scripts/recover-from-sessions.mjs` | 从 DSH 会话存档里恢复历史对话，回填 `state/archive/` |
+| `scripts/compact-archive.mjs` | 把归档历史按天压成记忆 |
+| `scripts/rebuild-memory.mjs` | 手动补压某个会话（支持 `--dry`） |
+| `scripts/test-memory-store.mjs` | 记忆库离线测试（28 项） |
+| `scripts/test-memory-compress.mjs` | 压缩离线测试（8 项） |
+| `scripts/reapply-pet-patches.mjs` | 桌宠本地补丁的复检/重打（`--check` / `--apply`） |
+| `docs/desktop-pet-patches.md` | 桌宠补丁台账 |
+| `dsh/agent-presets/qq-chat-v2-group/` | 群聊专用 preset（不含电脑操控权限） |
+| `plugins/qq-agent-presets/presets/qq-chat-v2-group.patch.yml` | 上面那个 preset 的生成产物 |
+
+**修改的上游文件（12 个）** —— 都是"接入点"，不是推倒重写：
+
+| 文件 | 改了什么 |
+|---|---|
+| `src/bridge.js` | 记忆库接线、压缩调度、全量归档、接力卡、唱歌历史、控制台接口 |
+| `src/mcp-snowluma-safe.js` | 新增 `qq_memory_write/recall/stats/disclose` 四个工具 |
+| `public/console.html` | 新增「记忆与压缩」页与「服务状态」面板 |
+| `plugins/qq-agent-presets/qq-tool-restrict.mjs` | 群聊 preset 的电脑权限拦截 |
+| `plugins/qq-agent-presets/presets/*.patch.yml` | 注册群聊 preset、带上新工具 |
+| `dsh/agent-presets/qq-chat-v2/agent.cordis.yml` | 让工具守卫放行 `pet_*` |
+| `scripts/build-agent-preset-patches.mjs` | 生成脚本支持新 preset |
+| `scripts/verify-dsh-021-adaptation.mjs` | 自检覆盖新 preset |
+| `.gitignore` | 忽略记忆库、归档、私人角色卡与维护者工具 |
+| `package.json` / `plugins/qq-agent-presets/package.json` | 依赖与脚本入口 |
+| `README.md` | 本项目说明 |
+
+**重命名（1 个）**：`roles/小鲸鱼.md` → `roles/模板-群友版.md`
+（脱敏后的通用模板；带私人称呼的原版不入库）。
+
+以上清单可用 `git diff --name-status upstream/main...main` 复核。
 
 ### 长期记忆库（`src/memory-store.js`）
 

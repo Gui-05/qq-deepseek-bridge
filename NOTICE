@@ -1,0 +1,12 @@
+# NOTICE
+
+本仓库包含来自 **[Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)** 的代码。
+
+- 上游版权：见 [LICENSE](LICENSE)（MIT License，
+  `Copyright (c) 2026 Derpyu520 and qq-bridge / QSH contributors`）。
+- 上游仓库的提交历史完整保留在本仓库的历史中（作者与提交信息未被改写或抹除）。
+- 本仓库在其基础上**新增**了长期记忆、上下文压缩、服务控制台等功能，
+  并做了若干接入性的修改；逐项清单见 README「本仓库相对上游的改动」一节。
+- 本仓库由第三方维护，**不代表上游作者的观点或背书**；上游与本仓库各自独立。
+
+如果你要再分发本仓库，请一并保留 LICENSE 与本 NOTICE。
