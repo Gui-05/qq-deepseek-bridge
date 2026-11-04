@@ -1,0 +1,21 @@
+{
+  "name": "gsv-tts-bridge",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Expose a /plugins/xiaomi-mimo-tts/synthesize compatible route that proxies to the local GPT-SoVITS API, so DSH plugins (e.g. dsh-coopanion-pet's pet_speak) can speak with the custom cloned voice.",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml"
+  ]
+}

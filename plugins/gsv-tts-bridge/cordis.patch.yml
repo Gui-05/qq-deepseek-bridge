@@ -1,0 +1,25 @@
+# 这是示例配置：复制到你的 profile 的 cordis.patch.yml 里，然后把 refAudio / promptText 改成你自己的。
+# gsv-tts-bridge —— 让「只认小米 TTS 路由」的插件用上本地 GPT-SoVITS 音色。
+#
+# 背景：dsh-coopanion-pet 的 pet_speak 把路由写死成
+#   POST /plugins/xiaomi-mimo-tts/synthesize  { text }
+# 只对接 dsh-xiaomi-tts。本插件注册同一条路径，把请求转给本地 GPT-SoVITS
+# （127.0.0.1:9880/tts），于是桌宠能用你自己训练/挑选的音色说话。
+- insert:
+  - id: gsv-tts-bridge
+    name: gsv-tts-bridge
+    config:
+      apiUrl: http://127.0.0.1:9880
+      route: /plugins/xiaomi-mimo-tts/synthesize
+      # 参考音频与参考文本必须和 GPT-SoVITS 服务里加载的模型匹配
+      refAudio: D:/qqbridge/voice-dataset/train/audio/ref.wav   # ← 换成你自己的参考音频（必须与 GPT-SoVITS 加载的模型匹配）
+      promptText: 这里写参考音频里那句话的原文   # ← 必须逐字对应，错一个字音色会跑偏
+      textLang: zh
+      promptLang: zh
+      topK: 15
+      topP: 1
+      temperature: 1
+      speed: 1
+      splitMethod: cut5
+      repetitionPenalty: 1.35
+      timeoutMs: 60000

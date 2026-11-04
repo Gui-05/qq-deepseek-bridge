@@ -58,7 +58,7 @@ QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──�
 
 ### 一眼看清：哪些是我们的
 
-**新增文件（13 个）** —— 上游完全没有，全是新功能：
+**新增文件（17 个）** —— 上游完全没有，全是新功能：
 
 | 文件 | 作用 |
 |---|---|
@@ -73,6 +73,10 @@ QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──�
 | `docs/desktop-pet-patches.md` | 桌宠补丁台账 |
 | `dsh/agent-presets/qq-chat-v2-group/` | 群聊专用 preset（不含电脑操控权限） |
 | `plugins/qq-agent-presets/presets/qq-chat-v2-group.patch.yml` | 上面那个 preset 的生成产物 |
+| `plugins/gsv-tts-bridge/` | TTS 适配插件：把"只认小米路由"的桌宠接到本地 GPT-SoVITS |
+| `scripts/warmup-voice.mjs` | 开机预热语音模型（首句从 40~60 秒降到约 2 秒） |
+| `scripts/start-gsv-api.example.cmd` | GPT-SoVITS API 启动模板（改路径即用） |
+| `docs/VOICE.md` | 语音方案说明与安装步骤 |
 
 **修改的上游文件（12 个）** —— 都是"接入点"，不是推倒重写：
 
@@ -130,6 +134,33 @@ QQ 消息 ──► SnowLuma（OneBot v11 WS）──► 本桥接进程 ──�
   同一套人格，既能 QQ 发消息，也能在桌面上说话/走动。
 - 补丁台账：`docs/desktop-pet-patches.md`；复检脚本：`scripts/reapply-pet-patches.mjs --check`。
 - 需要装有 Electron + 该插件；不装也不影响 QQ 侧。
+
+### 语音（用自己的嗓子说话）
+
+上游只有 **Edge TTS**（微软云，`qq_send_voice_tts` 发 QQ 语音条，开箱即用）。
+本仓库加的是另一条：**桌宠说话走你自己的 GPT-SoVITS 音色**。
+
+| 链路 | 用什么 | 谁提供的 |
+|---|---|---|
+| QQ 语音条（`qq_send_voice_tts`） | Edge TTS | 上游 |
+| 桌宠说话（`pet_say` / `pet_speak`） | 本地 GPT-SoVITS | **本仓库补的适配插件** |
+| 唱歌（`qq_sing`） | 本地 GPT-SoVITS（音色转换） | 本仓库补的（唱歌脚本需自备） |
+
+链路：
+
+```
+桌宠窗口 ──POST /plugins/xiaomi-mimo-tts/synthesize──▶ gsv-tts-bridge ──POST /tts──▶ GPT-SoVITS(9880)
+```
+
+**为什么需要适配层**：桌宠插件的 TTS 路由写死成 `/plugins/xiaomi-mimo-tts/synthesize`
+（只对接小米云）。`plugins/gsv-tts-bridge` 注册同一条路径转发给本地 GPT-SoVITS，
+于是不用换音色也能让她用自己的嗓子说话。
+
+**装什么、怎么装**：见 **[docs/VOICE.md](docs/VOICE.md)**（含三个实测坑：
+`NO_PROXY`、首句 40~60 秒要预热、含英文字母时 NLTK `cmudict` 缺失导致 400）。
+
+> GPT-SoVITS 本体、唱歌脚本、你的参考音频都**不在本仓库**——它们是独立项目与私人素材，
+> 按文档自己准备。
 
 ### 角色卡
 
