@@ -86,3 +86,4 @@ scripts/scan-personal.mjs
 scripts/scan-tracked.mjs
 scripts/show-hits.mjs
 scripts/sanitize.mjs
+scripts/build-persona-template.mjs
